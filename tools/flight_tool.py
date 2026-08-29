@@ -22,7 +22,7 @@ def search_flights(query):
 
     flights = []
 
-    if "data" in data:
+    if "data" in data:  
 
         for flight in data["data"][:5]:
 
