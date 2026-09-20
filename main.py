@@ -14,8 +14,17 @@ from langchain_core.messages import (
 
 from langchain_groq import ChatGroq
 
-from tools.tavily_tool import tavily_search
-from tools.flight_tool import search_flights
+# from tools.tavily_tool import tavily_search
+# from tools.flight_tool import search_flights
+
+
+from mcp_client import (
+    tavily_mcp_search,
+    get_airports,
+    get_airlines,
+    aviation_mcp_call,extract_destination,forecast_mcp_search,weather_mcp_search
+)
+
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -33,6 +42,33 @@ class TravelState(TypedDict):
     hotel_results: str
     itinerary: str
     llm_calls: int
+
+
+FLIGHT_AGENT_PROMPT = """
+You are a travel flight expert.
+
+User Query:
+{query}
+
+Airport Information:
+{airport_data}
+
+Airline Information:
+{airline_data}
+
+Generate:
+
+1. Likely departure airport
+2. Likely arrival airport
+3. Airlines serving this route
+4. Typical flight duration
+5. Estimated airfare range
+6. Peak season pricing warning
+7. Booking advice
+
+Return concise travel guidance.
+"""
+
 
 # Flight Agent
 def flight_agent(state: TravelState):
