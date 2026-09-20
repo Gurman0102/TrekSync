@@ -61,3 +61,62 @@ async def initialize_mcp():
     }
 
 
+async def tavily_mcp_search(query: str):
+    await initialize_mcp()
+    result = await search_tool.ainvoke(
+        {
+            "query": query
+        }
+    )
+    return result
+
+
+
+
+async def aviation_mcp_call(
+    tool_name: str,
+    tool_args: dict = None
+):
+
+    tools = await client.get_tools()
+
+    tool = next(
+        t for t in tools
+        if t.name == tool_name
+    )
+
+    result = await tool.ainvoke(
+        tool_args or {}
+    )
+
+    return result
+
+
+
+async def get_airports():
+
+    await initialize_mcp()
+
+    tool = aviation_tools.get("list_airports")
+
+    if not tool:
+        return "Airport tool unavailable"
+
+    result = await tool.ainvoke({})
+
+    return result
+
+
+async def get_airlines():
+
+    await initialize_mcp()
+
+    tool = aviation_tools.get("list_airlines")
+
+    if not tool:
+        return "Airline tool unavailable"
+
+    result = await tool.ainvoke({})
+
+    return result
+
