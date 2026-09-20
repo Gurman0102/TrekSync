@@ -23,9 +23,10 @@ client = MultiServerMCPClient(
             "transport": "streamable_http",
             "url": f"https://mcp.tavily.com/mcp/?tavilyApiKey={TAVILY_API_KEY}"
         },
-         "aviationstack": {
+
+        "aviationstack": {
             "transport": "stdio",
-            "command": r"E:\multi_agent_system_demo\multi_agent_system_v2\aviationstack-mcp\.venv\Scripts\python.exe",
+            "command": r"C:\Travel_Planner\aviationstack-mcp\.venv\Scripts\python.exe",
             "args": [
                 "-m",
                 "aviationstack_mcp",
@@ -39,16 +40,22 @@ client = MultiServerMCPClient(
 
         "weather": {
             "transport": "stdio",
-            "command": r"E:\multi_agent_system_demo\langgraph_env3\Scripts\python.exe",
+            "command": r"C:\Travel_Planner\langgraph_env\Scripts\python.exe",
             "args": [
-                r"E:\Multi_agent_system_with_MCP\custom_weather_mcp_server.py"
+                r"C:\Travel_Planner\custom_weather_mcp_server.py"
             ],
             "env": {
                 "OPENWEATHER_API_KEY": OPENWEATHER_API_KEY
             }
         }
+
+
+
     }
+
 )
+
+
 
 search_tool = None
 aviation_tools = {}
@@ -79,6 +86,9 @@ async def initialize_mcp():
         for tool in tools
         if tool.name != "tavily_search"
     }
+
+
+
 
 
 async def tavily_mcp_search(query: str):
@@ -141,6 +151,9 @@ async def get_airlines():
     return result
 
 
+
+
+
 weather_tool = None
 forecast_tool = None
 
@@ -185,3 +198,36 @@ async def forecast_mcp_search(city: str):
             "city": city
         }
     )
+
+
+
+
+from langchain_groq import ChatGroq
+
+# LLM
+llm = ChatGroq(
+    model="llama-3.3-70b-versatile"
+)
+
+###################################
+# Destination Extractor
+###################################
+
+def extract_destination(query: str):
+
+    prompt = f"""
+    Extract only the destination city or country.
+
+    Query:
+    {query}
+
+    Return only destination name.
+    """
+
+    response = llm.invoke(prompt)
+
+    return response.content.strip()
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
