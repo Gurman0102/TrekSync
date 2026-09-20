@@ -6,8 +6,17 @@ from langchain_mcp_adapters.client import MultiServerMCPClient
 
 #load_dotenv()
 load_dotenv(override=True)
+
+
 TAVILY_API_KEY = os.getenv("TAVILY_API_KEY")
+AVIATION_STACK_API_KEY = os.getenv("AVIATIONSTACK_API_KEY")
+OPENWEATHER_API_KEY = os.getenv("OPENWEATHER_API_KEY")
+
+
 print(f"Key loaded: {str(TAVILY_API_KEY)[:5]}...") # Should print 'tvly-...'
+print(f"Key loaded: {str(AVIATION_STACK_API_KEY)[:5]}...") # Should print 'avst-...'
+print(f"Key loaded: {str(OPENWEATHER_API_KEY)[:5]}...") # Should print 'owmk-...'
+
 client = MultiServerMCPClient(
     {
         "tavily": {
@@ -25,6 +34,17 @@ client = MultiServerMCPClient(
             ],
             "env": {
                 "AVIATION_STACK_API_KEY": AVIATION_STACK_API_KEY
+            }
+        },
+
+        "weather": {
+            "transport": "stdio",
+            "command": r"E:\multi_agent_system_demo\langgraph_env3\Scripts\python.exe",
+            "args": [
+                r"E:\Multi_agent_system_with_MCP\custom_weather_mcp_server.py"
+            ],
+            "env": {
+                "OPENWEATHER_API_KEY": OPENWEATHER_API_KEY
             }
         }
     }
@@ -120,3 +140,48 @@ async def get_airlines():
 
     return result
 
+
+weather_tool = None
+forecast_tool = None
+
+
+async def initialize_weather_tools():
+
+    global weather_tool, forecast_tool
+
+    if weather_tool is not None:
+        return
+
+    tools = await client.get_tools()
+
+    weather_tool = next(
+        t for t in tools
+        if t.name == "get_current_weather"
+    )
+
+    forecast_tool = next(
+        t for t in tools
+        if t.name == "get_forecast"
+    )
+
+
+async def weather_mcp_search(city: str):
+
+    await initialize_weather_tools()
+
+    return await weather_tool.ainvoke(
+        {
+            "city": city
+        }
+    )
+
+
+async def forecast_mcp_search(city: str):
+
+    await initialize_weather_tools()
+
+    return await forecast_tool.ainvoke(
+        {
+            "city": city
+        }
+    )
