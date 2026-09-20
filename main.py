@@ -1,7 +1,10 @@
+
+# LangGraph Multi-Agent Travel Booking System with Long-Term Memory
+
 import os
 from typing import TypedDict, Annotated
 import operator
-
+import asyncio
 import psycopg
 from langgraph.graph import StateGraph, START, END
 from langgraph.checkpoint.postgres import PostgresSaver
@@ -14,9 +17,6 @@ from langchain_core.messages import (
 
 from langchain_groq import ChatGroq
 
-# from tools.tavily_tool import tavily_search
-# from tools.flight_tool import search_flights
-
 
 from mcp_client import (
     tavily_mcp_search,
@@ -25,25 +25,31 @@ from mcp_client import (
     aviation_mcp_call,extract_destination,forecast_mcp_search,weather_mcp_search
 )
 
+
+
 from dotenv import load_dotenv
-load_dotenv()
+#load_dotenv()
+load_dotenv(override=True)
 
 DATABASE_URL = os.getenv("DATABASE_URL")
 
-
+# LLM
 llm = ChatGroq(
-  model="llama-3.1-8b-instant"
+    model="llama-3.3-70b-versatile"
 )
 
+# State
 class TravelState(TypedDict):
-    messages:Annotated[list[AnyMessage],operator.add]
-    user_query:str
+    messages: Annotated[list[AnyMessage], operator.add]
+    user_query: str
     flight_results: str
     hotel_results: str
     itinerary: str
     llm_calls: int
+    weather_results: str
 
 
+# Flight Tool Router Prompt
 FLIGHT_AGENT_PROMPT = """
 You are a travel flight expert.
 
@@ -68,6 +74,7 @@ Generate:
 
 Return concise travel guidance.
 """
+
 
 
 # Flight Agent
@@ -119,46 +126,30 @@ def flight_agent(state: TravelState):
         "llm_calls": state.get("llm_calls", 0) + 1
     }
 
+
+
+
 # Hotel Agent
 def hotel_agent(state: TravelState):
     query = f"Best hotels for {state['user_query']}"
-    hotel_results = tavily_search(query)
+    #hotel_results = tavily_search(query)
+
+    hotel_results = asyncio.run(
+        tavily_mcp_search(query)
+    )
 
     return {
         "hotel_results": hotel_results,
         "messages": [
             AIMessage(content="Hotel information fetched")
         ],
-        
-    }
-
-# Itinerary Agent
-def itinerary_agent(state: TravelState):
-
-    prompt = f"""
-    Create a travel itinerary.
-    User Query:
-    {state['user_query']}
-
-    Flight Results:
-    {state['flight_results']}
-
-    Hotel Results:
-    {state['hotel_results']}
-    """
-
-    response = llm.invoke([
-        SystemMessage(
-            content="You are an expert travel planner"
-        ),
-        HumanMessage(content=prompt)
-    ])
-
-    return {
-        "itinerary": response.content,
-        "messages": [response],
         "llm_calls": state.get("llm_calls", 0) + 1
     }
+
+
+
+
+
 
 
 def weather_agent(state: TravelState):
@@ -190,56 +181,79 @@ def weather_agent(state: TravelState):
 
 
 
-# Final Response Agent
-def final_agent(state: TravelState):
 
-    final_prompt = f"""
-    Generate final travel response.
 
-    Flights:
+# Itinerary Agent
+def itinerary_agent(state: TravelState):
+
+    prompt = f"""
+    Create a travel itinerary.
+    User Query:
+    {state['user_query']}
+
+    Flight Results:
     {state['flight_results']}
 
-    Hotels:
+    Hotel Results:
     {state['hotel_results']}
 
-    Itinerary:
-    {state['itinerary']}
+    Weather Information:
+    {state['weather_results']}
     """
 
     response = llm.invoke([
-        HumanMessage(content=final_prompt)
+        SystemMessage(
+            content="You are an expert travel planner"
+        ),
+        HumanMessage(content=prompt)
     ])
 
     return {
+        "itinerary": response.content,
         "messages": [response],
         "llm_calls": state.get("llm_calls", 0) + 1
     }
-    
+
+
+
+
+
+
+
 graph = StateGraph(TravelState)
 
 graph.add_node("flight_agent", flight_agent)
 graph.add_node("hotel_agent", hotel_agent)
+graph.add_node("weather_agent", weather_agent)
 graph.add_node("itinerary_agent", itinerary_agent)
-graph.add_node("final_agent", final_agent)
+
 
 graph.add_edge(START, "flight_agent")
 graph.add_edge("flight_agent", "hotel_agent")
-graph.add_edge("hotel_agent", "itinerary_agent")
-graph.add_edge("itinerary_agent", "final_agent")
-graph.add_edge("final_agent", END)
+graph.add_edge("hotel_agent", "weather_agent")
+graph.add_edge("weather_agent", "itinerary_agent")
+graph.add_edge("itinerary_agent", END)
 
-_conn = psycopg.connect(DATABASE_URL, autocommit=True)
+
+# Persistent connection so both CLI and Streamlit can share the compiled app
+_conn = psycopg.connect(DATABASE_URL)
 checkpointer = PostgresSaver(_conn)
 checkpointer.setup()
 
 app = graph.compile(checkpointer=checkpointer)
 
+
 if __name__ == "__main__":
+    
+
+    # every run starts fresh.
+    import uuid
     config = {
         "configurable": {
-            "thread_id": "user_aarohi"
+            "thread_id": str(uuid.uuid4())
         }
     }
+
 
     user_input = input("Enter travel request: ")
 
