@@ -18,7 +18,7 @@ client = MultiServerMCPClient(
 
         "aviationstack": {
             "transport": "stdio",
-            "command": r"E:\Multi_agent_system_with_MCP\aviationstack-mcp\.venv\Scripts\python.exe",
+            "command": r"C:\Travel_Planner\aviationstack-mcp\.venv\Scripts\python.exe",
             "args": [
                 "-m",
                 "aviationstack_mcp",
@@ -28,22 +28,20 @@ client = MultiServerMCPClient(
             "env": {
                 "AVIATION_STACK_API_KEY": AVIATION_STACK_API_KEY
             }
-        }   ,
+        },
+
         "weather": {
             "transport": "stdio",
-            "command": r"E:\multi_agent_system_demo\langgraph_env3\Scripts\python.exe",
+            "command": r"C:\Travel_Planner\langgraph_env\Scripts\python.exe",
             "args": [
-                r"E:\Multi_agent_system_with_MCP\weather_mcp_server.py"
+                r"C:\Travel_Planner\custom_weather_mcp_server.py"
             ],
             "env": {
                 "OPENWEATHER_API_KEY": OPENWEATHER_API_KEY
             }
         }
-
-
     }
 )
-
 
 # Cache tools so we don't load them repeatedly
 _tools_cache = None
