@@ -400,3 +400,27 @@ Reply with approval or feedback.
         "messages": [AIMessage(content="Draft itinerary created for human review.")],
         "llm_calls": state.get("llm_calls", 0) + 1,
     }
+
+
+def human_approval_agent(state: TravelState):
+    feedback = interrupt(
+        {
+            "question": "Do you approve this itinerary?",
+            "draft_itinerary": state.get("itinerary", ""),
+            "approval_request": state.get("approval_request", ""),
+            "expected_response": {
+                "approved": True,
+                "feedback": "Optional feedback for revision",
+            },
+        }
+    )
+
+    approved = feedback["approved"]
+    human_feedback = feedback["feedback"]
+
+    return {
+        "approved": approved,
+        "human_feedback": human_feedback,
+        "messages": [AIMessage(content="Human approval step completed.")],
+    }
+
