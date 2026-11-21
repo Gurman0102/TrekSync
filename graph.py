@@ -92,23 +92,23 @@ def build_graph():
 app = build_graph()
 
 
-if __name__ == "__main__":
-    import uuid
+# if __name__ == "__main__":
+#     import uuid
 
-    user_query = input("Enter travel request: ")
+#     user_query = input("Enter travel request: ")
 
-    config = {
-        "configurable": {
-            "thread_id": str(uuid.uuid4())
-        }
-    }
+#     config = {
+#         "configurable": {
+#             "thread_id": str(uuid.uuid4())
+#         }
+#     }
 
-    result = app.invoke(
-        {
-            "user_query": user_query,
-        },
-        config=config
-    )
+#     result = app.invoke(
+#         {
+#             "user_query": user_query,
+#         },
+#         config=config
+#     )
 
-    print("\n========== FINAL RESPONSE ==========")
-    print(result)
+#     print("\n========== FINAL RESPONSE ==========")
+#     print(result)
